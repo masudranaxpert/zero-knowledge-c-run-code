@@ -7,6 +7,10 @@ out/
 dist/
 *.vsix
 
+# VS Code specific files
+.vscode/
+.vscode-test/
+
 # Logs
 logs
 *.log
@@ -54,6 +58,18 @@ bower_components
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Compiled files
+*.vsix
+*.o
+*.exe
+
+# Package lock (optional)
+# package-lock.json
+
+# Temporarily generated files
+tmp/
+temp/
 
 # macOS Files
 .DS_Store
