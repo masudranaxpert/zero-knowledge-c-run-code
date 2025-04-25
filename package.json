@@ -3,8 +3,8 @@
   "displayName": "Zero Knowledge C Run Code",
   "description": "Run C code files directly from the context menu with a single click",
   "version": "0.0.1",
-  "publisher": "ZeroKnowledge",
-  "icon": "zEro Knowledge.png",
+  "publisher": "zeroknowledge",
+  "icon": "logo.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/masudranaxpert/zero-knowledge-c-run-code"
