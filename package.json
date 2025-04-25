@@ -1,0 +1,66 @@
+{
+  "name": "zero-knowledge-c-run-code",
+  "displayName": "Zero Knowledge C Run Code",
+  "description": "Run C code files directly from the context menu with a single click",
+  "version": "0.0.1",
+  "publisher": "ZeroKnowledge",
+  "icon": "zEro Knowledge.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/masudranaxpert/zero-knowledge-c-run-code"
+  },
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onCommand:run-c-code.runCFile"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "run-c-code.runCFile",
+        "title": "Run C Code"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "when": "resourceExtname == .c",
+          "command": "run-c-code.runCFile",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "resourceExtname == .c",
+          "command": "run-c-code.runCFile",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "run-c-code.runCFile",
+        "key": "ctrl+shift+b",
+        "mac": "cmd+shift+b",
+        "when": "editorLangId == c"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint . --quiet",
+    "test": "echo \"No tests specified\"",
+    "vscode:prepublish": "echo \"Preparing for publishing...\"",
+    "watch": "echo \"Watch mode not configured\"",
+    "package": "vsce package --no-yarn"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "eslint": "^8.0.0"
+  }
+} 
