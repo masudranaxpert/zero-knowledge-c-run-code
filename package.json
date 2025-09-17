@@ -2,7 +2,7 @@
   "name": "zero-knowledge-c-run-code",
   "displayName": "Zero Knowledge C/C++ Run Code",
   "description": "Run C and C++ code files directly from the context menu with a single click",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "zeroknowledge",
   "icon": "logo.png",
   "repository": {

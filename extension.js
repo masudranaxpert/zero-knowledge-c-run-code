@@ -247,6 +247,20 @@ async function performCompilation(filePath, isTempFile) {
         terminalName = `Run C/C++ - ${path.basename(filePath)}`;
         terminal = terminals[terminalName];
 
+        // If closePreviousTerminals is enabled, close all other terminals first
+        if (closePreviousTerminals) {
+            // Close all existing terminals except the current one we're about to use
+            for (let key in terminals) {
+                if (key !== terminalName) {
+                    const existingTerminal = terminals[key];
+                    if (existingTerminal) {
+                        existingTerminal.dispose();
+                        delete terminals[key];
+                    }
+                }
+            }
+        }
+
         // If no terminal exists or it was closed
         if (!terminal || terminal.exitStatus !== undefined) {
             // Create a new terminal
