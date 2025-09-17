@@ -1,0 +1,104 @@
+{
+  "C++ Main Function": {
+    "prefix": "cppmain",
+    "body": [
+      "#include <iostream>",
+      "",
+      "using namespace std;",
+      "",
+      "int main() {",
+      "\t",
+      "\treturn 0;",
+      "}"
+    ],
+    "description": "Basic C++ main function template"
+  },
+  "C++ For Loop": {
+    "prefix": "cppfor",
+    "body": [
+      "for (${1:int i = 0}; ${2:i < ${3:10}}; ${4:i++}) {",
+      "\t${5:cout << i << endl;}",
+      "}"
+    ],
+    "description": "C++ for loop template"
+  },
+  "C++ While Loop": {
+    "prefix": "cppwhile",
+    "body": [
+      "while (${1:condition}) {",
+      "\t${2:cout << \"Looping\" << endl;}",
+      "}"
+    ],
+    "description": "C++ while loop template"
+  },
+  "C++ If Statement": {
+    "prefix": "cppif",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2:cout << \"True\" << endl;}",
+      "}"
+    ],
+    "description": "C++ if statement template"
+  },
+  "C++ If-Else Statement": {
+    "prefix": "cppifelse",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2:cout << \"True\" << endl;}",
+      "} else {",
+      "\t${3:cout << \"False\" << endl;}",
+      "}"
+    ],
+    "description": "C++ if-else statement template"
+  },
+  "C++ Switch Statement": {
+    "prefix": "cppswitch",
+    "body": [
+      "switch (${1:variable}) {",
+      "\tcase ${2:value1}:",
+      "\t\t${3:cout << \"Case 1\" << endl;}",
+      "\t\tbreak;",
+      "\tcase ${4:value2}:",
+      "\t\t${5:cout << \"Case 2\" << endl;}",
+      "\t\tbreak;",
+      "\tdefault:",
+      "\t\t${6:cout << \"Default\" << endl;}",
+      "\t\tbreak;",
+      "}"
+    ],
+    "description": "C++ switch statement template"
+  },
+  "C++ Function Declaration": {
+    "prefix": "cppfunc",
+    "body": [
+      "${1:void} ${2:functionName}(${3:parameters}) {",
+      "\t${4:cout << \"Function called\" << endl;}",
+      "}"
+    ],
+    "description": "C++ function template"
+  },
+  "C++ Class Declaration": {
+    "prefix": "cppclass",
+    "body": [
+      "class ${1:ClassName} {",
+      "public:",
+      "\t${1}();",
+      "\t~${1}();",
+      "\t",
+      "private:",
+      "\t${2:// private members}",
+      "};"
+    ],
+    "description": "C++ class template"
+  },
+  "C++ Vector Declaration": {
+    "prefix": "cppvector",
+    "body": [
+      "#include <vector>",
+      "",
+      "vector<${1:int}> ${2:myVector};",
+      "${2}.push_back(${3:value});"
+    ],
+    "description": "C++ vector template"
+  }
+}

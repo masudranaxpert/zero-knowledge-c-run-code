@@ -5,9 +5,7 @@ jspm_packages/
 # Build output
 out/
 dist/
-# Allow our specific VSIX file but ignore others
-*.vsix
-!zero-knowledge-c-run-code-0.0.1.vsix
+
 
 # VS Code specific files
 .vscode/

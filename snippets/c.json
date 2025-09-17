@@ -1,0 +1,78 @@
+{
+  "C Main Function": {
+    "prefix": "cmain",
+    "body": [
+      "#include <stdio.h>",
+      "",
+      "int main() {",
+      "\t",
+      "\treturn 0;",
+      "}"
+    ],
+    "description": "Basic C main function template"
+  },
+  "C For Loop": {
+    "prefix": "cfor",
+    "body": [
+      "for (${1:int i = 0}; ${2:i < ${3:10}}; ${4:i++}) {",
+      "\t${5:// code here}",
+      "}"
+    ],
+    "description": "C for loop template"
+  },
+  "C While Loop": {
+    "prefix": "cwhile",
+    "body": [
+      "while (${1:condition}) {",
+      "\t${2:// code here}",
+      "}"
+    ],
+    "description": "C while loop template"
+  },
+  "C If Statement": {
+    "prefix": "cif",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2:// code here}",
+      "}"
+    ],
+    "description": "C if statement template"
+  },
+  "C If-Else Statement": {
+    "prefix": "cifelse",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2:// code here}",
+      "} else {",
+      "\t${3:// code here}",
+      "}"
+    ],
+    "description": "C if-else statement template"
+  },
+  "C Switch Statement": {
+    "prefix": "cswitch",
+    "body": [
+      "switch (${1:variable}) {",
+      "\tcase ${2:value1}:",
+      "\t\t${3:// code here}",
+      "\t\tbreak;",
+      "\tcase ${4:value2}:",
+      "\t\t${5:// code here}",
+      "\t\tbreak;",
+      "\tdefault:",
+      "\t\t${6:// code here}",
+      "\t\tbreak;",
+      "}"
+    ],
+    "description": "C switch statement template"
+  },
+  "C Function Declaration": {
+    "prefix": "cfunc",
+    "body": [
+      "${1:void} ${2:functionName}(${3:parameters}) {",
+      "\t${4:// code here}",
+      "}"
+    ],
+    "description": "C function template"
+  }
+}

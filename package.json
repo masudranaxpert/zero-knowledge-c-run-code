@@ -2,7 +2,7 @@
   "name": "zero-knowledge-c-run-code",
   "displayName": "Zero Knowledge C/C++ Run Code",
   "description": "Run C and C++ code files directly from the context menu with a single click",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "publisher": "zeroknowledge",
   "icon": "logo.png",
   "repository": {
@@ -25,6 +25,10 @@
       {
         "command": "run-c-code.runCFile",
         "title": "Run C/C++ Code"
+      },
+      {
+        "command": "run-c-code.runSelectedCode",
+        "title": "Run Selected C/C++ Code"
       }
     ],
     "menus": {
@@ -49,6 +53,86 @@
         "key": "ctrl+shift+b",
         "mac": "cmd+shift+b",
         "when": "editorLangId == c || editorLangId == cpp"
+      }
+    ],
+    "configuration": {
+      "title": "C/C++ Run Code",
+      "properties": {
+        "run-c-code.useNewTerminalPerFile": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use separate terminals for each file instead of using one global terminal for all files"
+        },
+        "run-c-code.closePreviousTerminals": {
+          "type": "boolean",
+          "default": false,
+          "description": "Close previous terminals when opening new files (only applies when using single global terminal)"
+        },
+        "run-c-code.compilerType": {
+          "type": "string",
+          "enum": ["gcc", "g++", "clang", "clang++"],
+          "enumDescriptions": [
+            "GNU C Compiler",
+            "GNU C++ Compiler",
+            "LLVM C Compiler",
+            "LLVM C++ Compiler"
+          ],
+          "default": "auto",
+          "description": "Compiler type to use (auto-detects based on file extension if set to 'auto')"
+        },
+        "run-c-code.compilerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to compiler (leave empty to use system default)"
+        },
+        "run-c-code.enableWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable compiler warnings (-Wall)"
+        },
+        "run-c-code.optimizationLevel": {
+          "type": "string",
+          "enum": ["none", "O1", "O2", "O3", "Os"],
+          "enumDescriptions": [
+            "No optimization",
+            "Basic optimization",
+            "Standard optimization",
+            "Aggressive optimization",
+            "Size optimization"
+          ],
+          "default": "none",
+          "description": "Compiler optimization level"
+        },
+        "run-c-code.additionalCompilerArgs": {
+          "type": "string",
+          "default": "",
+          "description": "Additional custom compiler arguments"
+        },
+        "run-c-code.runArgs": {
+          "type": "string",
+          "default": "",
+          "description": "Command line arguments to pass to the compiled executable"
+        },
+        "run-c-code.enableSyntaxCheck": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable real-time checking for scanf missing & operator errors"
+        },
+        "run-c-code.saveFileBeforeRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically save the file before running it"
+        }
+      }
+    },
+    "snippets": [
+      {
+        "language": "c",
+        "path": "./snippets/c.json"
+      },
+      {
+        "language": "cpp",
+        "path": "./snippets/cpp.json"
       }
     ]
   },
