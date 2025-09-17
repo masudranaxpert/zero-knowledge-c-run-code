@@ -40,9 +40,9 @@ function activate(context) {
             }
         }
 
-        // Ensure it's a C file
-        if (!filePath.endsWith('.c')) {
-            vscode.window.showErrorMessage('Selected file is not a C file');
+        // Ensure it's a C or C++ file
+        if (!filePath.endsWith('.c') && !filePath.endsWith('.cpp')) {
+            vscode.window.showErrorMessage('Selected file is not a C or C++ file');
             return;
         }
 
@@ -86,7 +86,10 @@ function compileAndRunFile(filePath) {
     
     // Compile and run in terminal
     terminal.sendText(`cd "${dirName}"`);
-    terminal.sendText(`gcc "${fileName}" -o "${fileNameWithoutExt}.exe"`);
+
+    // Use appropriate compiler based on file extension
+    const compiler = filePath.endsWith('.cpp') ? 'g++' : 'gcc';
+    terminal.sendText(`${compiler} "${fileName}" -o "${fileNameWithoutExt}.exe"`);
     
     // Run the executable with platform-specific command
     if (process.platform === 'win32') {

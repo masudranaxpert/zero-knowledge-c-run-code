@@ -1,7 +1,7 @@
 {
   "name": "zero-knowledge-c-run-code",
-  "displayName": "Zero Knowledge C Run Code",
-  "description": "Run C code files directly from the context menu with a single click",
+  "displayName": "Zero Knowledge C/C++ Run Code",
+  "description": "Run C and C++ code files directly from the context menu with a single click",
   "version": "0.0.1",
   "publisher": "zeroknowledge",
   "icon": "logo.png",
@@ -24,20 +24,20 @@
     "commands": [
       {
         "command": "run-c-code.runCFile",
-        "title": "Run C Code"
+        "title": "Run C/C++ Code"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "when": "resourceExtname == .c",
+          "when": "resourceExtname == .c || resourceExtname == .cpp",
           "command": "run-c-code.runCFile",
           "group": "navigation"
         }
       ],
       "editor/context": [
         {
-          "when": "resourceExtname == .c",
+          "when": "resourceExtname == .c || resourceExtname == .cpp",
           "command": "run-c-code.runCFile",
           "group": "navigation"
         }
@@ -48,7 +48,7 @@
         "command": "run-c-code.runCFile",
         "key": "ctrl+shift+b",
         "mac": "cmd+shift+b",
-        "when": "editorLangId == c"
+        "when": "editorLangId == c || editorLangId == cpp"
       }
     ]
   },
