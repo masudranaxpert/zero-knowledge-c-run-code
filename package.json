@@ -10,18 +10,18 @@
     "url": "https://github.com/masudranaxpert/zero-knowledge-c-run-code"
   },
   "engines": {
-    "vscode": "^1.60.0"
+    "vscode": "^1.85.0"
   },
   "categories": [
     "Other",
     "Programming Languages"
   ],
   "activationEvents": [
-    "onCommand:run-c-code.runCFile",
     "onLanguage:c",
-    "onLanguage:cpp"
+    "onLanguage:cpp",
+    "onLanguage:python"
   ],
-  "main": "./extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
@@ -31,6 +31,10 @@
       {
         "command": "run-c-code.runSelectedCode",
         "title": "Run Selected C/C++ Code"
+      },
+      {
+        "command": "run-c-code.refactorWithGemini",
+        "title": "Improve Text with Gemini"
       }
     ],
     "menus": {
@@ -46,6 +50,11 @@
           "when": "resourceExtname == .c || resourceExtname == .cpp",
           "command": "run-c-code.runCFile",
           "group": "navigation"
+        },
+        {
+          "when": "editorHasSelection && (editorLangId == c || editorLangId == cpp || editorLangId == python)",
+          "command": "run-c-code.refactorWithGemini",
+          "group": "1_modification"
         }
       ]
     },
@@ -55,6 +64,12 @@
         "key": "ctrl+shift+b",
         "mac": "cmd+shift+b",
         "when": "editorLangId == c || editorLangId == cpp"
+      },
+      {
+        "command": "run-c-code.refactorWithGemini",
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e",
+        "when": "editorHasSelection && (editorLangId == c || editorLangId == cpp || editorLangId == python)"
       }
     ],
     "configuration": {
@@ -63,21 +78,29 @@
         "run-c-code.useBuildFolder": {
           "type": "boolean",
           "default": true,
-          "description": "Compile into a 'build' subfolder and run from parent using build/<exe>"
+          "description": "Compile into a 'build' subfolder and run from parent using build/<exe>",
+          "order": 102
         },
         "run-c-code.useNewTerminalPerFile": {
           "type": "boolean",
           "default": false,
-          "description": "Use separate terminals for each file instead of using one global terminal for all files"
+          "description": "Use separate terminals for each file instead of using one global terminal for all files",
+          "order": 101
         },
         "run-c-code.closePreviousTerminals": {
           "type": "boolean",
           "default": false,
-          "description": "Close previous terminals when opening new files (only applies when using single global terminal)"
+          "description": "Close previous terminals when opening new files (only applies when using single global terminal)",
+          "order": 100
         },
         "run-c-code.compilerType": {
           "type": "string",
-          "enum": ["gcc", "g++", "clang", "clang++"],
+          "enum": [
+            "gcc",
+            "g++",
+            "clang",
+            "clang++"
+          ],
           "enumDescriptions": [
             "GNU C Compiler",
             "GNU C++ Compiler",
@@ -99,7 +122,13 @@
         },
         "run-c-code.optimizationLevel": {
           "type": "string",
-          "enum": ["none", "O1", "O2", "O3", "Os"],
+          "enum": [
+            "none",
+            "O1",
+            "O2",
+            "O3",
+            "Os"
+          ],
           "enumDescriptions": [
             "No optimization",
             "Basic optimization",
@@ -131,7 +160,50 @@
         "run-c-code.saveFileBeforeRun": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically save the file before running it"
+          "description": "Automatically save the file before running it",
+          "order": 103
+        },
+        "run-c-code.experimental.enableGeminiRefactor": {
+          "type": "boolean",
+          "default": false,
+          "description": "[Experimental] Enable text refactoring and improvement using Gemini API.",
+          "markdownDescription": "[Experimental] Enable text refactoring and improvement using Gemini API. Use **Ctrl+Alt+E** (Windows/Linux) or **Cmd+Alt+E** (macOS) to run on selected text.",
+          "order": 190
+        },
+        "run-c-code.geminiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Your Google AI Studio API Key for using Gemini features. Keep this private.",
+          "markdownDescription": "Your Google AI Studio API Key for using Gemini features. Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey). Keep this private.",
+          "format": "password",
+          "order": 191
+        },
+        "run-c-code.geminiModel": {
+          "type": "string",
+          "default": "gemini-2.5-flash-lite",
+          "enum": [
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-2.5-flash-lite",
+            "gemma-3-2b",
+            "gemini-2.5-flash"
+          ],
+          "enumDescriptions": [
+            "RPD → 200",
+            "RPD → 200",
+            "RPD → 1k",
+            "RPD → 14k",
+            "RPD → 250"
+          ],
+          "description": "Select the Gemini model to use for refactoring",
+          "order": 192
+        },
+        "run-c-code.geminiExtraRules": {
+          "type": "string",
+          "default": "",
+          "description": "Optional extra rules or style notes to append to the Gemini prompt",
+          "markdownDescription": "Add your own additional rules/prompts (one paragraph). These will be appended to the built-in rules while refactoring.",
+          "order": 193
         }
       }
     },
@@ -148,13 +220,18 @@
   },
   "scripts": {
     "lint": "eslint . --quiet",
+    "build": "esbuild ./extension.js --bundle --outfile=dist/extension.js --platform=node --external:vscode --format=cjs",
     "test": "echo \"No tests specified\"",
-    "vscode:prepublish": "echo \"Preparing for publishing...\"",
+    "vscode:prepublish": "npm run build",
     "watch": "echo \"Watch mode not configured\"",
     "package": "vsce package --no-yarn"
   },
   "devDependencies": {
     "@types/vscode": "^1.60.0",
+    "esbuild": "^0.25.11",
     "eslint": "^8.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
   }
-} 
+}

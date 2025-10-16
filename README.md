@@ -1,7 +1,7 @@
 # Zero Knowledge C/C++ Run Code
 
 [![Version](https://img.shields.io/badge/version-0.1.3-blue.svg)](https://github.com/masudranaxpert/zero-knowledge-c-run-code)
-[![VS Code](https://img.shields.io/badge/VS_Code-%5E1.60.0-blue)](https://code.visualstudio.com/)
+[![VS Code](https://img.shields.io/badge/VS_Code-%5E1.85.0-blue)](https://code.visualstudio.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/masudranaxpert/zero-knowledge-c-run-code/blob/main/LICENSE)
 
 A powerful, fast, and user-friendly VS Code extension that allows you to run C and C++ code files directly from the context menu with a single click. No complex configuration needed - just install and start coding!
@@ -9,27 +9,25 @@ A powerful, fast, and user-friendly VS Code extension that allows you to run C a
 ## ✨ Features
 
 ### 🚀 Quick Execution
-- **Right-click and Run**: Run C/C++ files directly from the context menu in Explorer or Editor
-- **Keyboard Shortcut**: Press `Ctrl+Shift+B` (`Cmd+Shift+B` on Mac) to instantly compile and run
-- **Auto-save**: Automatically saves your file before compilation if there are unsaved changes
+- **Right-click and Run**: Run C/C++ files directly from Explorer/Editor
+- **Shortcut**: `Ctrl+Shift+B` (`Cmd+Shift+B` on macOS)
+- **Auto-save**: Saves the file before compile (configurable)
 
 ### 🔧 Advanced Configuration
-- **Multi-Compiler Support**: GCC, G++, Clang, Clang++ with auto-detection
-- **Custom Compiler Path**: Use any compiler installation
-- **Compiler Flags**: Warnings (-Wall), Optimization levels (O1, O2, O3, Os)
-- **Custom Arguments**: Additional compiler and runtime arguments
-- **Terminal Management**: Per-file terminals or global terminal with cleanup options
+- **Compilers**: GCC, G++, Clang, Clang++ (auto-detect)
+- **Paths & Flags**: Custom compiler path, `-Wall`, optimization (O1/O2/O3/Os)
+- **Args**: Extra compiler and runtime arguments
+- **Terminal**: Per-file or single global, with auto-cleanup
 
 ### 🛠️ Developer Experience
-- **Cross-platform**: Works on Windows, macOS, and Linux
-- **Syntax Checking**: Real-time detection of `scanf` missing `&` operator errors
-- **Code Snippets**: Pre-built templates for C and C++ code structures
-- **Error Highlighting**: Compiler errors and warnings in VS Code Problems panel
+- **Cross-platform**: Windows, macOS, Linux
+- **Real-time Checks**: Live `scanf` “missing &” diagnostics with precise underline
+- **Inline Suggestion**: Copilot-style `scanf(...)` suggestion after `int/float/double/char` declarations
+- **Snippets**: Handy C/C++ templates
 
 ### 📱 Terminal Options
-- **Per-File Terminals**: Dedicated terminal for each file (recommended)
-- **Global Terminal**: Single terminal for all files
-- **Auto-cleanup**: Close previous terminals when opening new ones
+- **Per-File** or **Global** terminals
+- **Auto-cleanup** option
 
 ## 📋 Requirements
 
@@ -78,9 +76,8 @@ sudo yum install gcc gcc-c++
 3. Your code will compile and execute in a dedicated terminal
 
 ### Method 2: Keyboard Shortcut
-1. Open a C/C++ file in the editor
+1. Open a C/C++ file
 2. Press `Ctrl+Shift+B` (Windows/Linux) or `Cmd+Shift+B` (macOS)
-3. Code compiles and runs instantly
 
 ### Method 3: Code Snippets
 Use built-in snippets for quick code structure:
@@ -90,13 +87,15 @@ Use built-in snippets for quick code structure:
 
 ## ⚙️ Configuration
 
-Access settings via `Ctrl+,` (File → Preferences → Settings) and search for "C/C++ Run Code":
+Open Settings (`Ctrl+,`) and search for “C/C++ Run Code”.
 
-### Terminal Management
+### Terminal & Build (Grouped, end of Settings)
 ```json
 {
-  "run-c-code.useNewTerminalPerFile": true,     // Separate terminal per file
-  "run-c-code.closePreviousTerminals": false    // Close previous terminals
+  "run-c-code.closePreviousTerminals": false,   // order 100
+  "run-c-code.useNewTerminalPerFile": true,     // order 101
+  "run-c-code.useBuildFolder": true,            // order 102
+  "run-c-code.saveFileBeforeRun": true          // order 103
 }
 ```
 
@@ -120,8 +119,19 @@ Access settings via `Ctrl+,` (File → Preferences → Settings) and search for 
 }
 ```
 
+### Gemini AI (Experimental)
+```json
+{
+  "run-c-code.experimental.enableGeminiRefactor": false, // Toggle AI refactor
+  "run-c-code.geminiApiKey": "",                        // Your API key
+  "run-c-code.geminiModel": "gemini-2.5-flash-lite"     // Default model
+}
+```
+- Shortcut: use **Ctrl+Alt+E** (macOS: **Cmd+Alt+E**) on selected text.
+- Models available (RPD): `gemini-2.0-flash` (200), `gemini-2.0-flash-lite` (200), `gemini-2.5-flash-lite` (1k, default), `gemma-3-2b` (14k), `gemini-2.5-flash` (250).
+
 ### Arguments & Optimization (Together)
-Use these three settings together to control runtime arguments, extra compiler flags, and optimization level in one place.
+Control runtime args, extra compiler flags, and optimization in one place.
 
 ```json
 {
@@ -177,7 +187,7 @@ Use these three settings together to control runtime arguments, extra compiler f
 </details>
 
 ### Build Folder Behavior
-By default, the extension compiles outputs into a `build/` subfolder next to your source file and runs the program from the parent using a relative path.
+By default, executables are created in a `build/` subfolder beside the source and run from the parent directory.
 
 ```json
 {
@@ -189,7 +199,7 @@ When disabled (`false`), the executable is created and run in the same folder as
 ## 📥 Installation
 
 ### From VSIX (Recommended)
-1. Download `zero-knowledge-c-run-code-0.1.2.vsix`
+1. Download `zero-knowledge-c-run-code-0.1.3.vsix`
 2. Open VS Code
 3. Press `Ctrl+Shift+P` (Command Palette)
 4. Type "Install from VSIX" and select

@@ -1,4 +1,5 @@
 const vscode = require('vscode');
+const { refactorTextWithGemini } = require('./gemini.js');
 const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -104,6 +105,56 @@ function activate(context) {
         );
         context.subscriptions.push(inlineProvider);
     }
+
+    // Gemini refactor command registration
+    let geminiDisposable = vscode.commands.registerCommand('run-c-code.refactorWithGemini', async function () {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) return;
+
+        const selection = editor.selection;
+        const selectedText = editor.document.getText(selection);
+        if (selection.isEmpty) {
+            vscode.window.showInformationMessage('Please select the text you want to improve.');
+            return;
+        }
+
+        const config = vscode.workspace.getConfiguration('run-c-code');
+        const isEnabled = config.get('experimental.enableGeminiRefactor');
+        const apiKey = config.get('geminiApiKey');
+        const modelName = config.get('geminiModel', 'gemini-2.5-flash-lite');
+        const extraRules = config.get('geminiExtraRules', '');
+
+        if (!isEnabled) {
+            vscode.window.showWarningMessage('Gemini text refactoring is disabled. Enable it in the settings.');
+            return;
+        }
+        if (!apiKey) {
+            vscode.window.showErrorMessage('Gemini API Key is not set. Please add your API key in the settings.');
+            return;
+        }
+
+        const startLine = Math.max(selection.start.line - 5, 0);
+        const endLine = Math.min(selection.end.line + 5, editor.document.lineCount - 1);
+        const surroundingRange = new vscode.Range(startLine, 0, endLine, editor.document.lineAt(endLine).text.length);
+        const surroundingCode = editor.document.getText(surroundingRange);
+
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: '✨ Refining text with Gemini...',
+            cancellable: false
+        }, async () => {
+            try {
+                const improvedText = await refactorTextWithGemini(apiKey, selectedText, surroundingCode, modelName, extraRules);
+                await editor.edit(editBuilder => {
+                    editBuilder.replace(selection, improvedText);
+                });
+            } catch (err) {
+                vscode.window.showErrorMessage(err.message || 'Gemini refactor failed');
+            }
+        });
+    });
+
+    context.subscriptions.push(geminiDisposable);
 }
 
 /**
