@@ -6,6 +6,7 @@ const fs = require('fs');
 // Store terminals in a map to reuse them
 let terminals = {};
 let customDiagnosticCollection; // Global diagnostic collection for real-time syntax checking
+let diagnosticDebounceTimer; // Debounce timer for real-time diagnostics
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -17,10 +18,14 @@ function activate(context) {
     customDiagnosticCollection = vscode.languages.createDiagnosticCollection('c-custom-syntax');
     context.subscriptions.push(customDiagnosticCollection);
 
-    // Real-time syntax checking - check when files are saved or opened
+    // Real-time syntax checking - debounce on text change, and check on open
     context.subscriptions.push(
-        vscode.workspace.onDidSaveTextDocument(document => {
-            updateDiagnostics(document);
+        vscode.workspace.onDidChangeTextDocument(event => {
+            if (!event || !event.document) return;
+            if (diagnosticDebounceTimer) clearTimeout(diagnosticDebounceTimer);
+            diagnosticDebounceTimer = setTimeout(() => {
+                updateDiagnostics(event.document);
+            }, 500);
         })
     );
 
@@ -57,6 +62,48 @@ function activate(context) {
 
     context.subscriptions.push(disposable);
     // context.subscriptions.push(runSelectedDisposable);
+
+    // Inline completion (Copilot-style) for scanf after simple variable declarations
+    const selector = [{ language: 'c' }, { language: 'cpp' }];
+    if (vscode.languages.registerInlineCompletionItemProvider) {
+        const inlineProvider = vscode.languages.registerInlineCompletionItemProvider(
+            selector,
+            {
+                provideInlineCompletionItems(document, position) {
+                    // Do not suggest if current line already has text
+                    const currentLine = document.lineAt(position.line).text.trim();
+                    if (currentLine.length > 0) {
+                        return;
+                    }
+
+                    // Look at previous non-empty line to detect a declaration
+                    let prevLineIndex = position.line - 1;
+                    while (prevLineIndex >= 0 && document.lineAt(prevLineIndex).text.trim() === '') {
+                        prevLineIndex--;
+                    }
+                    if (prevLineIndex < 0) return;
+                    const prevLine = document.lineAt(prevLineIndex).text;
+                    const decl = parseVariableDeclaration(prevLine);
+                    if (!decl || decl.variableNames.length === 0) return;
+
+                    const specifierMap = {
+                        int: '%d',
+                        float: '%f',
+                        double: '%lf',
+                        char: ' %c'
+                    };
+                    const spec = specifierMap[decl.variableType];
+                    if (!spec) return;
+
+                    const formatSpecifiers = decl.variableNames.map(() => spec).join('');
+                    const ampersandVars = decl.variableNames.map(n => `&${n}`).join(', ');
+                    const suggestion = `scanf("${formatSpecifiers}", ${ampersandVars});`;
+                    return [new vscode.InlineCompletionItem(suggestion)];
+                }
+            }
+        );
+        context.subscriptions.push(inlineProvider);
+    }
 }
 
 /**
@@ -66,81 +113,76 @@ function activate(context) {
 function updateDiagnostics(document) {
     // Only check C/C++ files
     if (!document || (!document.fileName.endsWith('.c') && !document.fileName.endsWith('.cpp'))) {
-        customDiagnosticCollection.delete(document.uri); // Clear diagnostics for non-C/C++ files
+        if (document?.uri) customDiagnosticCollection.delete(document.uri);
         return;
     }
 
     try {
-        const content = document.getText();
-        const lines = content.split('\n');
         const diagnostics = [];
+        const text = document.getText();
+        const scanfRegex = /scanf\s*\(\s*"([^"]*)"\s*,\s*([^)]+)\)/g;
 
-        // Only check for scanf without & (address operator)
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            const lineNum = i + 1;
+        for (const match of text.matchAll(scanfRegex)) {
+            const matchIndex = match.index ?? 0;
+            const fullMatchText = match[0];
+            const formatSpec = match[1];
+            const variablesPart = match[2];
+            const originalVars = variablesPart.split(',');
 
-            // Skip comments and empty lines
-            if (!line || line.startsWith('//')) continue;
+            const formatMatches = formatSpec.match(/%[dcsfi]/g);
+            if (!formatMatches) continue;
 
-            // Handle block comments
-            if (line.includes('/*')) {
-                // Skip until comment ends
-                continue;
-            }
+            let searchOffsetInVarsPart = 0;
+            for (let i = 0; i < formatMatches.length; i++) {
+                if (i >= originalVars.length) break;
 
-            if (line.includes('scanf(')) {
-                // Find all scanf calls in the line
-                const scanfCalls = line.match(/scanf\s*\(\s*"[^"]*"\s*,\s*[^)]+\)/g);
-                if (scanfCalls) {
-                    for (const scanfCall of scanfCalls) {
-                        const scanfMatch = scanfCall.match(/scanf\s*\(\s*"([^"]*)"\s*,\s*([^)]+)\)/);
-                        if (scanfMatch) {
-                            const formatSpec = scanfMatch[1];
-                            const variables = scanfMatch[2].split(',').map(v => v.trim());
+                const fmt = formatMatches[i];
+                const originalVarStr = originalVars[i];
+                const trimmedVarStr = originalVarStr.trim();
 
-                            // Check each variable based on format specifier
-                            let varIndex = 0;
-                            const formatMatches = formatSpec.match(/%[dcsf]/g);
-                            if (formatMatches) {
-                                for (let j = 0; j < formatMatches.length && varIndex < variables.length; j++) {
-                                    const format = formatMatches[j];
-                                    const variable = variables[varIndex++].trim();
+                if (!trimmedVarStr) continue;
+                if (fmt === '%s') continue;
 
-                                    // Skip string arrays (char arrays don't need &)
-                                    if (format === '%s' && variable.includes('[')) {
-                                        continue;
-                                    }
+                if (['%d', '%c', '%f', '%i'].includes(fmt) && !trimmedVarStr.startsWith('&')) {
+                    // Position where match starts (line/column)
+                    const matchPosition = document.positionAt(matchIndex);
+                    const matchStartColumn = matchPosition.character;
 
-                                    // For %d, %c, %f, %i - need & for variables
-                                    if ((format === '%d' || format === '%c' || format === '%f' || format === '%i') &&
-                                        !variable.startsWith('&')) {
-                                        const range = new vscode.Range(
-                                            lineNum - 1, // VS Code uses 0-based indexing
-                                            0, // Start of line
-                                            lineNum - 1,
-                                            1000 // End of line (large number)
-                                        );
-                                        diagnostics.push(new vscode.Diagnostic(
-                                            range,
-                                            `Missing '&' before variable '${variable}' in scanf - should be &${variable}`,
-                                            vscode.DiagnosticSeverity.Error
-                                        ));
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    // Index of format string within the matched text
+                    const formatStringIndex = fullMatchText.indexOf(formatSpec);
+
+                    // Start searching variables only after the format string
+                    const searchStartForVars = formatStringIndex + formatSpec.length;
+                    const variablesPartIndexInMatch = fullMatchText.indexOf(variablesPart, searchStartForVars);
+                    if (variablesPartIndexInMatch === -1) continue;
+
+                    // Locate current variable within variablesPart after prior ones
+                    const varStartIndexInPart = variablesPart.indexOf(originalVarStr, searchOffsetInVarsPart);
+
+                    // Offset of trimmed variable inside its original piece
+                    const trimmedVarOffset = originalVarStr.indexOf(trimmedVarStr);
+
+                    // Final absolute columns on the same line as match start
+                    const finalStartColumn = matchStartColumn + variablesPartIndexInMatch + varStartIndexInPart + trimmedVarOffset;
+                    const finalEndColumn = finalStartColumn + trimmedVarStr.length;
+
+                    const range = new vscode.Range(matchPosition.line, finalStartColumn, matchPosition.line, finalEndColumn);
+                    diagnostics.push(new vscode.Diagnostic(
+                        range,
+                        `Missing '&' before variable '${trimmedVarStr}' in scanf - should be &${trimmedVarStr}`,
+                        vscode.DiagnosticSeverity.Error
+                    ));
                 }
+
+                // Move offset past this variable and comma
+                searchOffsetInVarsPart += originalVarStr.length + 1;
             }
         }
 
-        // Update the Problems panel
         customDiagnosticCollection.set(document.uri, diagnostics);
-
     } catch (error) {
         console.warn('Failed to run scanf syntax check:', error);
-        customDiagnosticCollection.delete(document.uri); // Clear diagnostics on error
+        if (document?.uri) customDiagnosticCollection.delete(document.uri);
     }
 }
 
@@ -238,6 +280,7 @@ async function performCompilation(filePath, isTempFile) {
     const optimizationLevel = config.get('optimizationLevel', 'none');
     const additionalCompilerArgs = config.get('additionalCompilerArgs', '');
     const runArgs = config.get('runArgs', '');
+    const useBuildFolder = config.get('useBuildFolder', true);
 
     let terminal;
     let terminalName;
@@ -333,7 +376,19 @@ async function performCompilation(filePath, isTempFile) {
     const fileName = path.basename(filePath);
     const exeBaseName = fileName.replace(/\.(c|cpp)$/, '');
     const exeName = process.platform === 'win32' ? `${exeBaseName}.exe` : exeBaseName;
-    const compilerCmd = `${compiler}${flagsString} "${fileName}" -o "${exeName}"`;
+
+    // Ensure build directory if setting is enabled
+    const outDir = 'build';
+    const outExeRel = useBuildFolder ? path.join(outDir, exeName) : exeName;
+    if (useBuildFolder) {
+        try {
+            fs.mkdirSync(path.join(dirName, outDir), { recursive: true });
+        } catch (e) {
+            console.warn('Failed to ensure build directory:', e);
+        }
+    }
+
+    const compilerCmd = `${compiler}${flagsString} "${fileName}" -o "${outExeRel}"`;
 
     terminal.sendText(compilerCmd);
 
@@ -342,10 +397,10 @@ async function performCompilation(filePath, isTempFile) {
 
     if (process.platform === 'win32') {
         // Windows - use call operator with quotes for filenames with spaces
-        terminal.sendText(`& ".\\${exeName}"${exeArgs}`);
+        terminal.sendText(`& ".\\${outExeRel}"${exeArgs}`);
     } else {
         // macOS/Linux
-        terminal.sendText(`./${exeName}${exeArgs}`);
+        terminal.sendText(`./${outExeRel}${exeArgs}`);
     }
 
     // Clean up temporary file if needed
@@ -374,3 +429,39 @@ module.exports = {
     activate,
     deactivate
 }; 
+
+// Parse a simple int declaration line like: int n; or int a, b, c;
+// Returns { variableNames: string[] } or null
+function parseIntDeclaration(line) {
+    try {
+        if (!line) return null;
+        const trimmed = line.trim();
+        // Match patterns like: int n; | int a,b,c; | int a, b, c; with optional spaces
+        const match = trimmed.match(/^int\s+([A-Za-z_][A-Za-z0-9_]*(\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*)\s*;\s*$/);
+        if (!match) return null;
+        const varsPart = match[1];
+        const names = varsPart.split(',').map(v => v.trim()).filter(Boolean);
+        return { variableNames: names };
+    } catch {
+        return null;
+    }
+}
+
+// Parse variable declarations with basic C types on a single line.
+// Supports: int a; | int a,b,c; | float x; | double x,y; | char ch;
+// Returns { variableType: 'int'|'float'|'double'|'char', variableNames: string[] } or null
+function parseVariableDeclaration(line) {
+    try {
+        if (!line) return null;
+        const trimmed = line.trim();
+        const match = trimmed.match(/^(int|float|double|char)\s+([A-Za-z_][A-Za-z0-9_]*(\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*)\s*;\s*$/);
+        if (!match) return null;
+        const typeName = match[1];
+        const varsPart = match[2];
+        const names = varsPart.split(',').map(v => v.trim()).filter(Boolean);
+        if (names.length === 0) return null;
+        return { variableType: typeName, variableNames: names };
+    } catch {
+        return null;
+    }
+}

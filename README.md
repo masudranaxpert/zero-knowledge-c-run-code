@@ -1,6 +1,6 @@
 # Zero Knowledge C/C++ Run Code
 
-[![Version](https://img.shields.io/badge/version-0.1.2-blue.svg)](https://github.com/masudranaxpert/zero-knowledge-c-run-code)
+[![Version](https://img.shields.io/badge/version-0.1.3-blue.svg)](https://github.com/masudranaxpert/zero-knowledge-c-run-code)
 [![VS Code](https://img.shields.io/badge/VS_Code-%5E1.60.0-blue)](https://code.visualstudio.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/masudranaxpert/zero-knowledge-c-run-code/blob/main/LICENSE)
 
@@ -120,6 +120,72 @@ Access settings via `Ctrl+,` (File → Preferences → Settings) and search for 
 }
 ```
 
+### Arguments & Optimization (Together)
+Use these three settings together to control runtime arguments, extra compiler flags, and optimization level in one place.
+
+```json
+{
+  "run-c-code.runArgs": "",
+  "run-c-code.additionalCompilerArgs": "",
+  "run-c-code.optimizationLevel": "none"
+}
+```
+
+<details>
+<summary><strong>See more</strong></summary>
+
+<br/>
+
+<strong>English</strong>
+
+- <strong>Run-c-code: Run Args</strong>: Command line arguments passed to your executable at runtime.
+  - Example: `"run-c-code.runArgs": "-n 10 --verbose input.txt"`
+  - Windows run: `& ".\\build\\your.exe" -n 10 --verbose input.txt`
+  - macOS/Linux run: `./build/your -n 10 --verbose input.txt`
+
+- <strong>Run-c-code: Additional Compiler Args</strong>: Extra compiler flags appended to the compile command.
+  - Examples:
+    - C standard: `"-std=c11"`
+    - Debug + macro: `"-g -DDEBUG"`
+    - Include path: `"-Iinclude"`
+  - Resulting command (illustrative): `gcc file.c -Wall -O2 -std=c11 -g -DDEBUG -Iinclude -o build/file.exe`
+
+- <strong>Run-c-code: Optimization Level</strong>: Chooses the compiler optimization level.
+  - Values: `none`, `O1`, `O2`, `O3`, `Os`
+  - Example: `"run-c-code.optimizationLevel": "O2"` → adds `-O2` during compilation.
+
+<hr/>
+
+<strong>বাংলা</strong>
+
+- <strong>Run-c-code: Run Args</strong>: আপনার প্রোগ্রাম রান করার সময় যে আর্গুমেন্টগুলো পাস হবে।
+  - উদাহরণ: `"run-c-code.runArgs": "-n 10 --verbose input.txt"`
+  - Windows: `& ".\\build\\your.exe" -n 10 --verbose input.txt`
+  - macOS/Linux: `./build/your -n 10 --verbose input.txt`
+
+- <strong>Run-c-code: Additional Compiler Args</strong>: কম্পাইল কমান্ডে অতিরিক্ত ফ্ল্যাগ যোগ করে।
+  - উদাহরণ:
+    - C স্ট্যান্ডার্ড: `"-std=c11"`
+    - ডিবাগ + ম্যাক্রো: `"-g -DDEBUG"`
+    - ইনক্লুড পাথ: `"-Iinclude"`
+  - কমান্ড (উদাহরণ): `gcc file.c -Wall -O2 -std=c11 -g -DDEBUG -Iinclude -o build/file.exe`
+
+- <strong>Run-c-code: Optimization Level</strong>: কম্পাইলারের অপ্টিমাইজেশন লেভেল ঠিক করে।
+  - অপশন: `none`, `O1`, `O2`, `O3`, `Os`
+  - উদাহরণ: `"run-c-code.optimizationLevel": "O2"` দিলে কম্পাইলের সময় `-O2` যুক্ত হবে।
+
+</details>
+
+### Build Folder Behavior
+By default, the extension compiles outputs into a `build/` subfolder next to your source file and runs the program from the parent using a relative path.
+
+```json
+{
+  "run-c-code.useBuildFolder": true            // Compile to build/ and run as ./build/<exe>
+}
+```
+When disabled (`false`), the executable is created and run in the same folder as the source (legacy behavior).
+
 ## 📥 Installation
 
 ### From VSIX (Recommended)
@@ -169,6 +235,10 @@ chmod +x your_program
 - Verify extension is enabled
 
 ## 📝 Release Notes
+
+### 0.1.3
+- 🆕 **Build Folder Output**: Compiles into `build/` subfolder and runs via `build/<exe>`
+- 🛠️ **Setting**: Toggle behavior with `run-c-code.useBuildFolder` (default: true)
 
 ### 0.1.2
 - 🆕 **C++ Support**: Full C++ file support with `g++`
