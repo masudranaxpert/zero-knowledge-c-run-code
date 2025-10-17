@@ -450,8 +450,8 @@ async function performCompilation(filePath, isTempFile) {
         // Windows - use call operator with quotes for filenames with spaces
         terminal.sendText(`& ".\\${outExeRel}"${exeArgs}`);
     } else {
-        // macOS/Linux
-        terminal.sendText(`./${outExeRel}${exeArgs}`);
+        // macOS/Linux - use quotes for filenames with spaces
+        terminal.sendText(`"./${outExeRel}"${exeArgs}`);
     }
 
     // Clean up temporary file if needed
