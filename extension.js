@@ -450,8 +450,9 @@ async function performCompilation(filePath, isTempFile) {
         // Windows - use call operator with quotes for filenames with spaces
         terminal.sendText(`& ".\\${outExeRel}"${exeArgs}`);
     } else {
-        // macOS/Linux - use quotes for filenames with spaces
-        terminal.sendText(`"./${outExeRel}"${exeArgs}`);
+        // macOS/Linux - escape spaces in path for shell
+        const escapedPath = outExeRel.replace(/ /g, '\\ ');
+        terminal.sendText(`./${escapedPath}${exeArgs}`);
     }
 
     // Clean up temporary file if needed
