@@ -1,6 +1,6 @@
 # Zero Knowledge C/C++ Run Code
 
-[![Version](https://img.shields.io/badge/version-0.1.3-blue.svg)](https://github.com/masudranaxpert/zero-knowledge-c-run-code)
+[![Version](https://img.shields.io/badge/version-0.1.6-blue.svg)](https://github.com/masudranaxpert/zero-knowledge-c-run-code)
 [![VS Code](https://img.shields.io/badge/VS_Code-%5E1.85.0-blue)](https://code.visualstudio.com/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/masudranaxpert/zero-knowledge-c-run-code/blob/main/LICENSE)
 
@@ -119,10 +119,12 @@ Open Settings (`Ctrl+,`) and search for “C/C++ Run Code”.
 }
 ```
 
-### Gemini AI (Experimental)
+### Gemini AI Features (Experimental)
+
+#### 1. Text Improvement
 ```json
 {
-  "run-c-code.experimental.enableGeminiRefactor": false, // Toggle AI refactor
+  "run-c-code.experimental.enableGeminiRefactor": false, // Toggle AI features
   "run-c-code.geminiApiKey": "",                        // Your API key
   "run-c-code.geminiModel": "gemini-2.5-flash-lite",    // Default model
   "run-c-code.geminiOutputLanguage": "english",         // Output language (english/bangla)
@@ -130,10 +132,51 @@ Open Settings (`Ctrl+,`) and search for “C/C++ Run Code”.
   "run-c-code.geminiExtraRules": ""                     // Additional custom rules
 }
 ```
-- Shortcut: use **Ctrl+Alt+E** (macOS: **Cmd+Alt+E**) on selected text.
+- **Shortcut**: **Ctrl+Alt+E** (macOS: **Cmd+Alt+E**) on selected text
+- **Supports**: C, C++, Python, and `.txt` files
+- **Language Support**: Choose between English or Bangla (বাংলা) output
+- **Line Length**: Set maximum characters per line (default: 76)
+
+#### 2. Smart Variable Renamer 🆕
+- **Shortcut**: **Ctrl+Alt+R** (macOS: **Cmd+Alt+R**)
+- **Two Modes**:
+  - **Quick Fix (💡)** - Default, Recommended
+    - Shows blue underlines on poorly named variables
+    - Click lightbulb or press `Ctrl+.` to see suggestions
+    - In-context, professional approach
+    - One-click rename with `WorkspaceEdit`
+  - **Quick Pick** - Classic menu style
+    - Shows all suggestions in a selection menu
+    - Multi-select with Space, Enter to apply
+
+- **What it does**: 
+  - Analyzes your code for poorly named variables (x, y, a, b, temp, etc.)
+  - Suggests meaningful, descriptive names using AI
+  - Shows which lines each variable appears on
+  - Lets you choose which renames to apply
+- **Works with**: Entire file or selected code
+- **Supports**: C, C++, Python
+
+**Example (Quick Fix Mode)**:
+```c
+// Before - you'll see blue underline under 'x' and 'calc'
+int x = 10;
+float y = calc(x);
+
+// Click 💡 lightbulb → "Rename 'x' to 'student_count'"
+// After one click
+int student_count = 10;
+float average_score = calculate_average(student_count);
+```
+
+**Settings**:
+```json
+{
+  "run-c-code.variableRenamerMode": "quickFix"  // or "quickPick"
+}
+```
+
 - Models available (RPD): `gemini-2.0-flash` (200), `gemini-2.0-flash-lite` (200), `gemini-2.5-flash-lite` (1k, default), `gemma-3-2b` (14k), `gemini-2.5-flash` (250).
-- **Language Support**: Choose between English or Bangla (বাংলা) output for improved text.
-- **Line Length**: Set maximum characters per line (default: 76) for better formatting of comments and text.
 
 ### Arguments & Optimization (Together)
 Control runtime args, extra compiler flags, and optimization in one place.
@@ -204,7 +247,7 @@ When disabled (`false`), the executable is created and run in the same folder as
 ## 📥 Installation
 
 ### From VSIX (Recommended)
-1. Download `zero-knowledge-c-run-code-0.1.3.vsix`
+1. Download `zero-knowledge-c-run-code-0.1.6.vsix`
 2. Open VS Code
 3. Press `Ctrl+Shift+P` (Command Palette)
 4. Type "Install from VSIX" and select
@@ -250,6 +293,24 @@ chmod +x your_program
 - Verify extension is enabled
 
 ## 📝 Release Notes
+
+### 0.1.6
+- 🆕 **Smart Variable Renamer**: AI-powered tool to suggest better variable/function names
+  - **Quick Fix Mode (💡)**: Shows blue underlines with lightbulb suggestions (default)
+  - **Quick Pick Mode**: Classic menu-based selection
+  - One-click rename with `WorkspaceEdit`
+- 🆕 **Text File Support**: Gemini refactor now works with `.txt` files
+- 🆕 **Language Selection**: Choose between English and Bangla (বাংলা) output
+- 🆕 **Line Length Control**: Set maximum characters per line (default: 76)
+- 🛠️ **Enhanced Formatting**: Better multi-line comment and text formatting
+- 🌐 **Bilingual Support**: Full support for English and Bangla (বাংলা)
+- ⌨️ **New Shortcut**: `Ctrl+Alt+R` for Smart Variable Renamer
+- 🎯 **Professional UX**: In-context diagnostics and code actions
+
+### 0.1.5
+- 🆕 **Gemini AI Integration**: Experimental text refactoring feature
+- 🛠️ **Multiple Models**: Support for various Gemini models
+- 🔧 **Custom Rules**: Add your own refactoring rules
 
 ### 0.1.3
 - 🆕 **Build Folder Output**: Compiles into `build/` subfolder and runs via `build/<exe>`

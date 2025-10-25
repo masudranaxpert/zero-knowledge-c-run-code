@@ -19,7 +19,8 @@
   "activationEvents": [
     "onLanguage:c",
     "onLanguage:cpp",
-    "onLanguage:python"
+    "onLanguage:python",
+    "onLanguage:plaintext"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -35,6 +36,10 @@
       {
         "command": "run-c-code.refactorWithGemini",
         "title": "Improve Text with Gemini"
+      },
+      {
+        "command": "run-c-code.smartRenameVariables",
+        "title": "Smart Rename Variables/Functions"
       }
     ],
     "menus": {
@@ -52,8 +57,13 @@
           "group": "navigation"
         },
         {
-          "when": "editorHasSelection && (editorLangId == c || editorLangId == cpp || editorLangId == python)",
+          "when": "editorHasSelection && (editorLangId == c || editorLangId == cpp || editorLangId == python || editorLangId == plaintext)",
           "command": "run-c-code.refactorWithGemini",
+          "group": "1_modification"
+        },
+        {
+          "when": "editorLangId == c || editorLangId == cpp || editorLangId == python",
+          "command": "run-c-code.smartRenameVariables",
           "group": "1_modification"
         }
       ]
@@ -69,7 +79,13 @@
         "command": "run-c-code.refactorWithGemini",
         "key": "ctrl+alt+e",
         "mac": "cmd+alt+e",
-        "when": "editorHasSelection && (editorLangId == c || editorLangId == cpp || editorLangId == python)"
+        "when": "editorHasSelection && (editorLangId == c || editorLangId == cpp || editorLangId == python || editorLangId == plaintext)"
+      },
+      {
+        "command": "run-c-code.smartRenameVariables",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "editorLangId == c || editorLangId == cpp || editorLangId == python"
       }
     ],
     "configuration": {
@@ -226,6 +242,21 @@
           "maximum": 120,
           "description": "Maximum character length per line for formatted text (default: 76)",
           "order": 195
+        },
+        "run-c-code.variableRenamerMode": {
+          "type": "string",
+          "default": "quickFix",
+          "enum": [
+            "quickFix",
+            "quickPick"
+          ],
+          "enumDescriptions": [
+            "Show suggestions as Code Actions (💡 lightbulb) - Recommended",
+            "Show suggestions in Quick Pick menu (Ctrl+Alt+R)"
+          ],
+          "description": "Choose how variable rename suggestions are displayed",
+          "markdownDescription": "**Quick Fix (💡)**: Shows yellow underlines with lightbulb suggestions (in-context, professional)\n\n**Quick Pick**: Shows all suggestions in a selection menu (Ctrl+Alt+R)",
+          "order": 196
         }
       }
     },

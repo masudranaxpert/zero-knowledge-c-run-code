@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const { refactorTextWithGemini } = require('./gemini.js');
+const { analyzeAndSuggestNames, applyRename } = require('./variable-renamer.js');
 const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -8,6 +9,8 @@ const fs = require('fs');
 let terminals = {};
 let customDiagnosticCollection; // Global diagnostic collection for real-time syntax checking
 let diagnosticDebounceTimer; // Debounce timer for real-time diagnostics
+let variableRenameDiagnostics; // Diagnostic collection for variable rename suggestions
+let variableRenameSuggestions = new Map(); // Store suggestions per file
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -18,6 +21,10 @@ function activate(context) {
     // Initialize diagnostic collection for real-time syntax checking
     customDiagnosticCollection = vscode.languages.createDiagnosticCollection('c-custom-syntax');
     context.subscriptions.push(customDiagnosticCollection);
+
+    // Initialize diagnostic collection for variable rename suggestions
+    variableRenameDiagnostics = vscode.languages.createDiagnosticCollection('variable-rename-suggestions');
+    context.subscriptions.push(variableRenameDiagnostics);
 
     // Real-time syntax checking - debounce on text change, and check on open
     context.subscriptions.push(
@@ -157,6 +164,266 @@ function activate(context) {
     });
 
     context.subscriptions.push(geminiDisposable);
+
+    // Variable Renamer command registration
+    let variableRenamerDisposable = vscode.commands.registerCommand('run-c-code.smartRenameVariables', async function () {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showInformationMessage('No active editor found.');
+            return;
+        }
+
+        const document = editor.document;
+        const languageId = document.languageId;
+        
+        // Check if it's a supported language
+        if (!['c', 'cpp', 'python'].includes(languageId)) {
+            vscode.window.showWarningMessage('Smart Variable Renamer only supports C, C++, and Python files.');
+            return;
+        }
+
+        const config = vscode.workspace.getConfiguration('run-c-code');
+        const isEnabled = config.get('experimental.enableGeminiRefactor');
+        const apiKey = config.get('geminiApiKey');
+        const modelName = config.get('geminiModel', 'gemini-2.5-flash-lite');
+
+        if (!isEnabled) {
+            vscode.window.showWarningMessage('Gemini features are disabled. Enable "Experimental: Enable Gemini Refactor" in settings.');
+            return;
+        }
+        if (!apiKey) {
+            vscode.window.showErrorMessage('Gemini API Key is not set. Please add your API key in the settings.');
+            return;
+        }
+
+        // Get code to analyze (selection or entire file)
+        let codeToAnalyze;
+        let isSelection = false;
+        const selection = editor.selection;
+        
+        if (!selection.isEmpty) {
+            codeToAnalyze = document.getText(selection);
+            isSelection = true;
+        } else {
+            codeToAnalyze = document.getText();
+        }
+
+        if (!codeToAnalyze.trim()) {
+            vscode.window.showInformationMessage('No code to analyze.');
+            return;
+        }
+
+        // Check which mode is enabled
+        const renamerMode = config.get('variableRenamerMode', 'quickFix');
+
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: '🔍 Analyzing variable names...',
+            cancellable: false
+        }, async () => {
+            try {
+                const suggestions = await analyzeAndSuggestNames(apiKey, codeToAnalyze, modelName, languageId);
+                
+                if (!suggestions || suggestions.length === 0) {
+                    vscode.window.showInformationMessage('✅ Great! All variable names look good.');
+                    // Clear any existing diagnostics
+                    variableRenameDiagnostics.delete(document.uri);
+                    variableRenameSuggestions.delete(document.uri.toString());
+                    return;
+                }
+
+                if (renamerMode === 'quickFix') {
+                    // Quick Fix mode: Show diagnostics with lightbulb
+                    await showDiagnosticsForSuggestions(document, suggestions);
+                    vscode.window.showInformationMessage(`💡 Found ${suggestions.length} naming improvement(s). Click the lightbulb or press Ctrl+. to see suggestions.`);
+                } else {
+                    // Quick Pick mode: Show selection menu
+                    await showRenameSuggestions(editor, suggestions, isSelection);
+                }
+
+            } catch (err) {
+                vscode.window.showErrorMessage(err.message || 'Variable analysis failed');
+            }
+        });
+    });
+
+    context.subscriptions.push(variableRenamerDisposable);
+
+    // Register Code Actions Provider for Quick Fix mode
+    const codeActionProvider = vscode.languages.registerCodeActionsProvider(
+        [{ language: 'c' }, { language: 'cpp' }, { language: 'python' }],
+        {
+            provideCodeActions(document, range, context) {
+                const diagnostics = context.diagnostics.filter(
+                    d => d.source === 'Variable Renamer'
+                );
+
+                if (diagnostics.length === 0) {
+                    return [];
+                }
+
+                const actions = [];
+                const fileUri = document.uri.toString();
+                const suggestions = variableRenameSuggestions.get(fileUri) || [];
+
+                for (const diagnostic of diagnostics) {
+                    // Find matching suggestion
+                    const suggestion = suggestions.find(s => 
+                        s.diagnostic && 
+                        s.diagnostic.range.isEqual(diagnostic.range)
+                    );
+
+                    if (suggestion) {
+                        // Create "Rename" action
+                        const renameAction = new vscode.CodeAction(
+                            `Rename '${suggestion.oldName}' to '${suggestion.newName}'`,
+                            vscode.CodeActionKind.QuickFix
+                        );
+                        renameAction.diagnostics = [diagnostic];
+                        renameAction.isPreferred = true;
+
+                        // Create workspace edit
+                        const edit = new vscode.WorkspaceEdit();
+                        const fullText = document.getText();
+                        
+                        // Find all occurrences and replace
+                        const regex = new RegExp(`\\b${suggestion.oldName}\\b`, 'g');
+                        let match;
+                        while ((match = regex.exec(fullText)) !== null) {
+                            const startPos = document.positionAt(match.index);
+                            const endPos = document.positionAt(match.index + suggestion.oldName.length);
+                            edit.replace(document.uri, new vscode.Range(startPos, endPos), suggestion.newName);
+                        }
+
+                        renameAction.edit = edit;
+                        actions.push(renameAction);
+
+                        // Create "Show reason" action
+                        const reasonAction = new vscode.CodeAction(
+                            `💡 Why rename? ${suggestion.reason}`,
+                            vscode.CodeActionKind.Empty
+                        );
+                        reasonAction.command = {
+                            command: 'vscode.open',
+                            title: 'Show Reason',
+                            arguments: []
+                        };
+                        actions.push(reasonAction);
+                    }
+                }
+
+                return actions;
+            }
+        },
+        {
+            providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+        }
+    );
+
+    context.subscriptions.push(codeActionProvider);
+}
+
+/**
+ * Show diagnostics (yellow underlines) for variable rename suggestions
+ */
+async function showDiagnosticsForSuggestions(document, suggestions) {
+    const diagnostics = [];
+    const fileUri = document.uri.toString();
+    const suggestionsWithDiagnostics = [];
+
+    for (const suggestion of suggestions) {
+        if (!suggestion.lineNumbers || suggestion.lineNumbers.length === 0) {
+            continue;
+        }
+
+        // Create diagnostic for the first occurrence
+        const firstLine = suggestion.lineNumbers[0] - 1; // Convert to 0-indexed
+        const lineText = document.lineAt(firstLine).text;
+        const regex = new RegExp(`\\b${suggestion.oldName}\\b`);
+        const match = regex.exec(lineText);
+
+        if (match) {
+            const startPos = new vscode.Position(firstLine, match.index);
+            const endPos = new vscode.Position(firstLine, match.index + suggestion.oldName.length);
+            const range = new vscode.Range(startPos, endPos);
+
+            const diagnostic = new vscode.Diagnostic(
+                range,
+                `Consider renaming '${suggestion.oldName}' to '${suggestion.newName}'. ${suggestion.reason}`,
+                vscode.DiagnosticSeverity.Information
+            );
+            diagnostic.source = 'Variable Renamer';
+            diagnostic.code = 'poor-naming';
+
+            diagnostics.push(diagnostic);
+
+            // Store suggestion with its diagnostic
+            suggestionsWithDiagnostics.push({
+                ...suggestion,
+                diagnostic: diagnostic
+            });
+        }
+    }
+
+    // Set diagnostics for this document
+    variableRenameDiagnostics.set(document.uri, diagnostics);
+    
+    // Store suggestions for this file
+    variableRenameSuggestions.set(fileUri, suggestionsWithDiagnostics);
+}
+
+/**
+ * Show rename suggestions to user and apply selected ones (Quick Pick mode)
+ */
+async function showRenameSuggestions(editor, suggestions, isSelection) {
+    const document = editor.document;
+    
+    // Create quick pick items
+    const items = suggestions.map(suggestion => ({
+        label: `$(symbol-variable) ${suggestion.oldName} → ${suggestion.newName}`,
+        description: `${suggestion.type} | Lines: ${suggestion.lineNumbers.join(', ')}`,
+        detail: suggestion.reason,
+        suggestion: suggestion
+    }));
+
+    // Show multi-select quick pick
+    const selected = await vscode.window.showQuickPick(items, {
+        canPickMany: true,
+        placeHolder: 'Select variables/functions to rename (Space to select, Enter to confirm)',
+        title: `Found ${suggestions.length} naming improvement(s)`
+    });
+
+    if (!selected || selected.length === 0) {
+        return;
+    }
+
+    // Apply renames
+    await editor.edit(editBuilder => {
+        let codeToModify;
+        let range;
+
+        if (isSelection) {
+            range = editor.selection;
+            codeToModify = document.getText(range);
+        } else {
+            range = new vscode.Range(
+                document.positionAt(0),
+                document.positionAt(document.getText().length)
+            );
+            codeToModify = document.getText();
+        }
+
+        // Apply all selected renames
+        let modifiedCode = codeToModify;
+        selected.forEach(item => {
+            const { oldName, newName } = item.suggestion;
+            modifiedCode = applyRename(modifiedCode, oldName, newName);
+        });
+
+        editBuilder.replace(range, modifiedCode);
+    });
+
+    vscode.window.showInformationMessage(`✅ Renamed ${selected.length} variable(s)/function(s) successfully!`);
 }
 
 /**
@@ -477,6 +744,9 @@ function deactivate() {
         }
     }
     terminals = {};
+    
+    // Clear variable rename suggestions
+    variableRenameSuggestions.clear();
 }
 
 module.exports = {
