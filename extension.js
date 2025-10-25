@@ -123,6 +123,8 @@ function activate(context) {
         const apiKey = config.get('geminiApiKey');
         const modelName = config.get('geminiModel', 'gemini-2.5-flash-lite');
         const extraRules = config.get('geminiExtraRules', '');
+        const outputLanguage = config.get('geminiOutputLanguage', 'english');
+        const lineLength = config.get('geminiLineLength', 76);
 
         if (!isEnabled) {
             vscode.window.showWarningMessage('Gemini text refactoring is disabled. Enable it in the settings.');
@@ -144,7 +146,7 @@ function activate(context) {
             cancellable: false
         }, async () => {
             try {
-                const improvedText = await refactorTextWithGemini(apiKey, selectedText, surroundingCode, modelName, extraRules);
+                const improvedText = await refactorTextWithGemini(apiKey, selectedText, surroundingCode, modelName, extraRules, outputLanguage, lineLength);
                 await editor.edit(editBuilder => {
                     editBuilder.replace(selection, improvedText);
                 });

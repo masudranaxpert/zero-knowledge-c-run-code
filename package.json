@@ -2,7 +2,7 @@
   "name": "zero-knowledge-c-run-code",
   "displayName": "Zero Knowledge C/C++ Run Code",
   "description": "Run C and C++ code files directly from the context menu with a single click",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "publisher": "zeroknowledge",
   "icon": "logo.png",
   "repository": {
@@ -204,6 +204,28 @@
           "description": "Optional extra rules or style notes to append to the Gemini prompt",
           "markdownDescription": "Add your own additional rules/prompts (one paragraph). These will be appended to the built-in rules while refactoring.",
           "order": 193
+        },
+        "run-c-code.geminiOutputLanguage": {
+          "type": "string",
+          "default": "english",
+          "enum": [
+            "english",
+            "bangla"
+          ],
+          "enumDescriptions": [
+            "Output text in English",
+            "Output text in Bangla (বাংলা)"
+          ],
+          "description": "Select the output language for refactored text",
+          "order": 194
+        },
+        "run-c-code.geminiLineLength": {
+          "type": "number",
+          "default": 76,
+          "minimum": 40,
+          "maximum": 120,
+          "description": "Maximum character length per line for formatted text (default: 76)",
+          "order": 195
         }
       }
     },

@@ -124,11 +124,16 @@ Open Settings (`Ctrl+,`) and search for “C/C++ Run Code”.
 {
   "run-c-code.experimental.enableGeminiRefactor": false, // Toggle AI refactor
   "run-c-code.geminiApiKey": "",                        // Your API key
-  "run-c-code.geminiModel": "gemini-2.5-flash-lite"     // Default model
+  "run-c-code.geminiModel": "gemini-2.5-flash-lite",    // Default model
+  "run-c-code.geminiOutputLanguage": "english",         // Output language (english/bangla)
+  "run-c-code.geminiLineLength": 76,                    // Max characters per line
+  "run-c-code.geminiExtraRules": ""                     // Additional custom rules
 }
 ```
 - Shortcut: use **Ctrl+Alt+E** (macOS: **Cmd+Alt+E**) on selected text.
 - Models available (RPD): `gemini-2.0-flash` (200), `gemini-2.0-flash-lite` (200), `gemini-2.5-flash-lite` (1k, default), `gemma-3-2b` (14k), `gemini-2.5-flash` (250).
+- **Language Support**: Choose between English or Bangla (বাংলা) output for improved text.
+- **Line Length**: Set maximum characters per line (default: 76) for better formatting of comments and text.
 
 ### Arguments & Optimization (Together)
 Control runtime args, extra compiler flags, and optimization in one place.
